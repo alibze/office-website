@@ -1,9 +1,10 @@
 "use client";
 
 import { useAppStore } from "@/store";
-import { Globe, Palette, Check } from "lucide-react";
+import { Globe, Palette, Check, Plug, Plus, Trash2 } from "lucide-react";
 import * as Illustration from "@/components/svg";
 import { useExtracted } from "next-intl";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { languages, LocaleName, LocaleExtend, Language } from "@ziziyi/utils";
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { OfficeTheme } from "@/utils/editor/types";
 import { isDarkTheme } from "@/utils/utils";
+import { PRESET_PLUGINS, type Plugin } from "@/utils/plugins";
 
 // Get display name for a language code
 function getLanguageLabel(code: Language): string {
@@ -34,7 +36,31 @@ const sortedLanguages = [
 
 export function SettingsView() {
   const t = useExtracted();
-  const { language, theme, setLanguage, setTheme } = useAppStore();
+  const {
+    language,
+    theme,
+    setLanguage,
+    setTheme,
+    customPlugins,
+    enabledPluginIds,
+    addCustomPlugin,
+    removeCustomPlugin,
+    togglePlugin,
+  } = useAppStore();
+  const [newPluginUrl, setNewPluginUrl] = useState("");
+
+  const handleAddPlugin = () => {
+    if (!newPluginUrl) return;
+    const id = `custom-${Date.now()}`;
+    const plugin: Plugin = {
+      id,
+      name: "Custom Plugin",
+      description: "Custom added plugin",
+      url: newPluginUrl,
+    };
+    addCustomPlugin(plugin);
+    setNewPluginUrl("");
+  };
 
   const themes: {
     id: OfficeTheme;
@@ -169,6 +195,116 @@ export function SettingsView() {
                 </div>
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* Plugins Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <Plug className="w-5 h-5 text-primary" />
+            <h2>{t("Plugins")}</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Preset Plugins */}
+            {PRESET_PLUGINS.map((plugin) => (
+              <div
+                key={plugin.id}
+                className="flex items-start justify-between p-4 rounded-xl border border-border bg-card"
+              >
+                <div className="pr-4">
+                  <h3 className="font-semibold">{plugin.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {plugin.description}
+                  </p>
+                </div>
+                <button
+                  onClick={() => togglePlugin(plugin.id)}
+                  className={cn(
+                    "w-11 h-6 rounded-full transition-colors relative shrink-0",
+                    enabledPluginIds.includes(plugin.id)
+                      ? "bg-primary"
+                      : "bg-muted",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "block w-5 h-5 bg-white rounded-full shadow-sm transition-transform absolute top-0.5 left-0.5",
+                      enabledPluginIds.includes(plugin.id) && "translate-x-5",
+                    )}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Custom Plugins */}
+          <div className="space-y-4 pt-4 border-t border-border">
+            <h3 className="font-semibold">{t("Custom Plugins")}</h3>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newPluginUrl}
+                onChange={(e) => setNewPluginUrl(e.target.value)}
+                placeholder={t("Enter plugin config.json URL")}
+                className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                onClick={handleAddPlugin}
+                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-sm font-medium flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {t("Add")}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {customPlugins.map((plugin) => (
+                <div
+                  key={plugin.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50"
+                >
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate text-sm">
+                        {plugin.url}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => togglePlugin(plugin.id)}
+                      className={cn(
+                        "w-9 h-5 rounded-full transition-colors relative mr-2",
+                        enabledPluginIds.includes(plugin.id)
+                          ? "bg-primary"
+                          : "bg-muted",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "block w-4 h-4 bg-white rounded-full shadow-sm transition-transform absolute top-0.5 left-0.5",
+                          enabledPluginIds.includes(plugin.id) &&
+                            "translate-x-4",
+                        )}
+                      />
+                    </button>
+                    <button
+                      onClick={() => removeCustomPlugin(plugin.id)}
+                      className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {customPlugins.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">
+                  {t("No custom plugins added.")}
+                </p>
+              )}
+            </div>
           </div>
         </section>
       </div>

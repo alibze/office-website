@@ -3,6 +3,7 @@
 import { use, useLayoutEffect, useRef, useEffect } from "react";
 import { useAppStore, useResolvedLanguage } from "@/store";
 import { getDocumentType } from "@/utils/editor/utils";
+import { PRESET_PLUGINS } from "@/utils/plugins";
 import io, { MockSocket } from "@/utils/editor/socket";
 import { createXHRProxy } from "@/utils/editor/xhr";
 import { DocEditor } from "@/utils/editor/types";
@@ -13,6 +14,8 @@ export default function Page({ params }: { params: Promise<{}> }) {
   const server = useAppStore((state) => state.server);
   const language = useResolvedLanguage();
   const theme = useAppStore((state) => state.theme);
+  const customPlugins = useAppStore((state) => state.customPlugins);
+  const enabledPluginIds = useAppStore((state) => state.enabledPluginIds);
   const isDirty = useRef(false);
 
   useEffect(() => {
@@ -83,6 +86,13 @@ export default function Page({ params }: { params: Promise<{}> }) {
     };
 
     const createEditor = () => {
+      // Calculate active plugins
+      const activePlugins = [...PRESET_PLUGINS, ...customPlugins].filter((p) =>
+        enabledPluginIds.includes(p.id),
+      );
+
+      const pluginsData = activePlugins.map((p) => p.url);
+
       editor = new window.DocsAPI.DocEditor("placeholder", {
         document: {
           fileType: doc.fileType,
@@ -104,6 +114,9 @@ export default function Page({ params }: { params: Promise<{}> }) {
         documentType: documentType,
         editorConfig: {
           lang: language,
+          plugins: {
+            pluginsData,
+          },
           // canCoAuthoring: true,
           // type: "desktop",
           coEditing: {
