@@ -8,6 +8,7 @@ import {
   standardizeLocale,
 } from "@ziziyi/utils";
 import { type OfficeTheme } from "@/utils/editor/types";
+import { type Plugin } from "@/utils/plugins";
 
 /**
  * Resolves the language setting to an actual locale code.
@@ -32,9 +33,18 @@ interface AppState {
   language: Language;
   theme: OfficeTheme;
 
+  // Plugin State
+  customPlugins: Plugin[];
+  enabledPluginIds: string[];
+
   // Actions
   setLanguage: (lang: Language) => void;
   setTheme: (theme: OfficeTheme) => void;
+
+  // Plugin Actions
+  addCustomPlugin: (plugin: Plugin) => void;
+  removeCustomPlugin: (id: string) => void;
+  togglePlugin: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -47,9 +57,34 @@ export const useAppStore = create<AppState>()(
       language: LocaleExtend.Auto,
       theme: "theme-white",
 
+      // Plugin Initial State
+      customPlugins: [],
+      enabledPluginIds: [],
+
       // Settings Actions
       setLanguage: (lang) => set({ language: lang }),
       setTheme: (theme) => set({ theme: theme }),
+
+      // Plugin Actions
+      addCustomPlugin: (plugin) =>
+        set((state) => ({
+          customPlugins: [...state.customPlugins, plugin],
+          enabledPluginIds: [...state.enabledPluginIds, plugin.id],
+        })),
+      removeCustomPlugin: (id) =>
+        set((state) => ({
+          customPlugins: state.customPlugins.filter((p) => p.id !== id),
+          enabledPluginIds: state.enabledPluginIds.filter((pid) => pid !== id),
+        })),
+      togglePlugin: (id) =>
+        set((state) => {
+          const isEnabled = state.enabledPluginIds.includes(id);
+          return {
+            enabledPluginIds: isEnabled
+              ? state.enabledPluginIds.filter((pid) => pid !== id)
+              : [...state.enabledPluginIds, id],
+          };
+        }),
     }),
     {
       name: "office-state",
@@ -57,6 +92,8 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         language: state.language,
         theme: state.theme,
+        customPlugins: state.customPlugins,
+        enabledPluginIds: state.enabledPluginIds,
       }),
     },
   ),
